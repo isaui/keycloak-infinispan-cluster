@@ -1,0 +1,252 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infinispan
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infinispan-config
+  namespace: infinispan
+data:
+  infinispan-config.yaml: |
+    infinispan:
+      server:
+        endpoints:
+          endpoint:
+            socket-binding: default
+            securityRealm: default
+            hotrodConnector:
+              externalHost: host.docker.internal
+              externalPort: 11222
+              authentication:
+                securityRealm: default
+                sasl:
+                  serverName: infinispan
+                  mechanisms:
+                    - SCRAM-SHA-512
+                    - SCRAM-SHA-256
+                    - DIGEST-MD5
+                    - PLAIN
+                  qop:
+                    - auth
+            restConnector:
+              authentication:
+                mechanisms:
+                  - DIGEST
+                  - BASIC
+                securityRealm: default
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: connect-secret
+  namespace: infinispan
+stringData:
+  identities.yaml: |
+    credentials:
+      - username: developer
+        password: Pusilkom123
+        roles:
+          - admin
+      - username: keycloak
+        password: KeycloakPass123
+        roles:
+          - application
+
+---
+apiVersion: infinispan.org/v1
+kind: Infinispan
+metadata:
+  name: infinispan-cluster
+  namespace: infinispan
+spec:
+  version: 15.0.0
+  replicas: 3
+  configMapName: infinispan-config
+  security:
+    endpointSecretName: connect-secret
+    endpointEncryption:
+      type: None
+  service:
+    type: DataGrid
+  container:
+    cpu: "500m:200m"
+    memory: "512Mi:256Mi"
+    extraJvmOpts: "-Xms256m -Xmx512m -XX:MetaspaceSize=64m"
+  logging:
+    categories:
+      org.infinispan: warn
+      org.jgroups: error
+
+---
+# Keycloak 26+ sudah support protobuf encoding
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: sessions
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: sessions
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      expiration:
+        lifespan: "3600000"
+        maxIdle: "1800000"
+      memory:
+        maxCount: "1000"
+
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: client-sessions
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: clientSessions
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      expiration:
+        lifespan: "3600000"
+        maxIdle: "1800000"
+      memory:
+        maxCount: "1000"
+
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: offline-sessions
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: offlineSessions
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      expiration:
+        lifespan: "2592000000"
+      memory:
+        maxCount: "500"
+
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: offline-client-sessions
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: offlineClientSessions
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      expiration:
+        lifespan: "2592000000"
+      memory:
+        maxCount: "500"
+
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: login-failures
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: loginFailures
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      expiration:
+        lifespan: "900000"
+      memory:
+        maxCount: "500"
+
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: action-tokens
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: actionTokens
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      expiration:
+        lifespan: "300000"
+        maxIdle: "-1"
+      memory:
+        maxCount: "500"
+
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: work
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: work
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      memory:
+        maxCount: "500"
+
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: authentication-sessions
+  namespace: infinispan
+spec:
+  clusterName: infinispan-cluster
+  name: authenticationSessions
+  template: |
+    distributedCache:
+      mode: "SYNC"
+      owners: "2"
+      statistics: "true"
+      encoding:
+        mediaType: "application/x-protostream"
+      expiration:
+        lifespan: "1800000"
+      memory:
+        maxCount: "1000"

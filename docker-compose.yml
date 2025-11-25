@@ -15,7 +15,7 @@ services:
 
   # Keycloak SSO server
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak-local
     environment:
       # Database configuration
@@ -24,11 +24,11 @@ services:
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak123
       
-      # Keycloak admin credentials - HARDCODED
+      # Admin credentials
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin123
       
-      # Keycloak configuration - HARDCODED
+      # Hostname configuration
       KC_HOSTNAME: localhost
       KC_HOSTNAME_PORT: 7077
       KC_HOSTNAME_STRICT: false
@@ -36,18 +36,42 @@ services:
       KC_HTTP_ENABLED: true
       KC_HEALTH_ENABLED: true
       KC_METRICS_ENABLED: true
+
+      # Log level
+      KC_LOG_LEVEL: DEBUG
+
+      # Infinispan Remote Cache (menggunakan CLI options)
+      KC_CACHE: ispn
+      KC_CACHE_REMOTE_HOST: host.docker.internal
+      KC_CACHE_REMOTE_PORT: 11222
+      KC_CACHE_REMOTE_USERNAME: keycloak
+      KC_CACHE_REMOTE_PASSWORD: KeycloakPass123
+      KC_CACHE_REMOTE_TLS_ENABLED: false
+      KC_FEATURES: clusterless
+      KC_FEATURES_DISABLED: persistent-user-sessions
+      JAVA_OPTS_APPEND: >
+        -Dinfinispan.client.hotrod.client_intelligence=BASIC
+        -Dinfinispan.client.hotrod.socket_timeout=60000
+        -Dinfinispan.client.hotrod.connect_timeout=60000
+
       
-      # Development mode
-      KC_LOG_LEVEL: INFO
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Agar bisa akses host machine
     ports:
       - "7077:8080"
     depends_on:
       - keycloak-db
     networks:
       - keycloak-network
-    restart: unless-stopped
     command: 
-      - start-dev
+      - start
+      - --verbose
+      - --spi-connections-infinispan-quarkus-site-name=local-site
+    
+    
+
+
 
 volumes:
   keycloak_db_data:
