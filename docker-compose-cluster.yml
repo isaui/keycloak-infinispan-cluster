@@ -1,0 +1,229 @@
+services:
+  # PostgreSQL database for Keycloak
+  keycloak-db:
+    image: postgres:16
+    container_name: keycloak-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak123
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - keycloak-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak Node 1
+  keycloak-1:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: keycloak-1
+    hostname: keycloak-1
+    environment:
+      # Database configuration
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak123
+      
+      # Admin credentials
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      
+      # Hostname configuration
+      # KC_HOSTNAME: localhost
+      # KC_HOSTNAME_PORT: 7077
+      KC_HOSTNAME_URL: http://localhost:7077
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+
+      # Log level
+      KC_LOG_LEVEL: INFO
+
+      # Infinispan Remote Cache
+      KC_CACHE: ispn
+      KC_CACHE_REMOTE_HOST: host.docker.internal
+      KC_CACHE_REMOTE_PORT: 11222
+      KC_CACHE_REMOTE_USERNAME: keycloak
+      KC_CACHE_REMOTE_PASSWORD: KeycloakPass123
+      KC_CACHE_REMOTE_TLS_ENABLED: false
+      KC_FEATURES: clusterless
+      KC_FEATURES_DISABLED: persistent-user-sessions
+      JAVA_OPTS_APPEND: >
+        -Dinfinispan.client.hotrod.client_intelligence=BASIC
+        -Dinfinispan.client.hotrod.socket_timeout=60000
+        -Dinfinispan.client.hotrod.connect_timeout=60000
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - keycloak-network
+    command: 
+      - start
+      - --verbose
+      - --spi-connections-infinispan-quarkus-site-name=local-site
+    restart: unless-stopped
+
+  # Keycloak Node 2
+  keycloak-2:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: keycloak-2
+    hostname: keycloak-2
+    environment:
+      # Database configuration
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak123
+
+      # Admin credentials
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      
+      # Hostname configuration - SAMA
+      # KC_HOSTNAME: localhost
+      # KC_HOSTNAME_PORT: 7077
+      KC_HOSTNAME_URL: http://localhost:7077
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+
+      # Log level
+      KC_LOG_LEVEL: INFO
+
+      # Infinispan Remote Cache
+      KC_CACHE: ispn
+      KC_CACHE_REMOTE_HOST: host.docker.internal
+      KC_CACHE_REMOTE_PORT: 11222
+      KC_CACHE_REMOTE_USERNAME: keycloak
+      KC_CACHE_REMOTE_PASSWORD: KeycloakPass123
+      KC_CACHE_REMOTE_TLS_ENABLED: false
+      KC_FEATURES: clusterless
+      KC_FEATURES_DISABLED: persistent-user-sessions
+      JAVA_OPTS_APPEND: >
+        -Dinfinispan.client.hotrod.client_intelligence=BASIC
+        -Dinfinispan.client.hotrod.socket_timeout=60000
+        -Dinfinispan.client.hotrod.connect_timeout=60000
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - keycloak-network
+    command: 
+      - start
+      - --verbose
+      - --spi-connections-infinispan-quarkus-site-name=local-site
+    restart: unless-stopped
+
+  # Keycloak Node 3
+  keycloak-3:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: keycloak-3
+    hostname: keycloak-3
+    environment:
+      # Database configuration
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak123
+      
+      # Admin credentials
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      # Hostname configuration - SAMA
+      # KC_HOSTNAME: localhost
+      # KC_HOSTNAME_PORT: 7077
+      KC_HOSTNAME_URL: http://localhost:7077
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+
+      # Log level
+      KC_LOG_LEVEL: INFO
+
+      # Infinispan Remote Cache
+      KC_CACHE: ispn
+      KC_CACHE_REMOTE_HOST: host.docker.internal
+      KC_CACHE_REMOTE_PORT: 11222
+      KC_CACHE_REMOTE_USERNAME: keycloak
+      KC_CACHE_REMOTE_PASSWORD: KeycloakPass123
+      KC_CACHE_REMOTE_TLS_ENABLED: false
+      KC_FEATURES: clusterless
+      KC_FEATURES_DISABLED: persistent-user-sessions
+      JAVA_OPTS_APPEND: >
+        -Dinfinispan.client.hotrod.client_intelligence=BASIC
+        -Dinfinispan.client.hotrod.socket_timeout=60000
+        -Dinfinispan.client.hotrod.connect_timeout=60000
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - keycloak-network
+    command: 
+      - start
+      - --verbose
+      - --spi-connections-infinispan-quarkus-site-name=local-site
+    restart: unless-stopped
+
+  # Nginx Load Balancer - ONLY THIS EXPOSES PORT!
+  nginx:
+    image: nginx:alpine
+    container_name: keycloak-lb
+    ports:
+      - "7077:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - keycloak-1
+      - keycloak-2
+      - keycloak-3
+    networks:
+      - keycloak-network
+    restart: unless-stopped
+
+volumes:
+  keycloak_db_data:
+    driver: local
+
+networks:
+  keycloak-network:
+    driver: bridge
+
+# ===========================================
+# HARDCODED CREDENTIALS FOR DEVELOPMENT:
+# ===========================================
+# Keycloak Admin: admin / admin123
+# Keycloak DB: keycloak / keycloak123
+#
+# PENTING: Pastikan Infinispan cluster running dan port forward:
+# kubectl port-forward -n infinispan service/infinispan-cluster 11222:11222
+#
+# Access HANYA via Load Balancer:
+# - http://localhost:7077
+#
+# Verify cluster formation:
+# docker logs keycloak-1 | grep "Received new cluster view"
+# docker logs keycloak-2 | grep "Received new cluster view"
+# docker logs keycloak-3 | grep "Received new cluster view"
+#
+# ===========================================
